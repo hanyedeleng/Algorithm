@@ -34,6 +34,13 @@ It's bottom-up method!!!!
 Time complexity is O(n^2) due to it's double loop.
 
 
+Matrix-chain multiplication:
+Given a chain <A1,A2,...,An> of n matrices, where for i = 1, 2, 3, ... , n Ai has dimention pi-1 * Pi, fully parenthesize the product
+A1A2..An in a way that minimizes the number of scalar multiplicatioins.
+Typically, the time invested in determining this optimal order is more than paid for by the time saved later on when actually performing 
+the matrix multiplications (such as performing only 7500 scalar multiplications instead of 75,000).
+
+
 
 
 
