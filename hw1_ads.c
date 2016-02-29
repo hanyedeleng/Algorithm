@@ -51,6 +51,16 @@ tree_node_t *create_tree(void)
    return( tmp_node );
 }
 
+int length_text(tree_node_t *node) {
+  if(node == NULL || node->left == NULL) {
+    return 0;
+  }
+  while(node->right != NULL) {
+    node = node->right;
+  }
+  return node->key;
+}
+
 void left_rotation(tree_node_t *n)
 {  tree_node_t *tmp_node;
    key_t        tmp_key;
@@ -96,7 +106,21 @@ object_t *find(tree_node_t *tree, key_t query_key)
    }
 }
 
+void renumber(tree_node_t *tree, key_t new_key) {
+  tree_node_t *tmp_node = tree;
+  if(tmp_node->right == NULL && tmp_node->key >= new_key) {
+    tmp_node->key += 1;
+    return;
+  }
+    if(tmp_node->key >= new_key) {
+      tmp_node->key += 1;
+      renumber(tmp_node->left, new_key);
+      renumber(tmp_node->right, new_key);
+    }
 
+}
+
+// for now what I can a solution to insert in logn time is to use linked list at leaf.
 int insert(tree_node_t *tree, key_t new_key, object_t *new_object)
 {  tree_node_t *tmp_node;
    int finished;
@@ -107,7 +131,13 @@ int insert(tree_node_t *tree, key_t new_key, object_t *new_object)
       tree->right  = NULL; 
    }
    else
-     {  tree_node_t * path_stack[100]; int  path_st_p = 0;
+     {  
+      // add code here for renumber
+      key_t tmp_key = length_text(tree);
+      if (new_key <= tmp_key) {
+        renumber(tree, new_key);
+      }
+      tree_node_t * path_stack[100]; int  path_st_p = 0;
       tmp_node = tree; 
       while( tmp_node->right != NULL )
       {   path_stack[path_st_p++] = tmp_node;
@@ -193,12 +223,54 @@ int insert(tree_node_t *tree, key_t new_key, object_t *new_object)
          if( tmp_node->height == old_height )
             finished = 1;
       }
-      
+
    }
    return( 0 );
 }
 
+int append_line(tree_node_t *tree, object_t *new_object) {
+  key_t  new_key = length_text(tree) + 1;
+  insert(tree, new_key, new_object);
+  return 0;
+}
 
+object_t *set_line(tree_node_t *tree, key_t query_key, object_t *new_object) {
+  key_t line_num = length_text(tree);
+  tree_node_t *tmp_node;
+  object_t * previous;
+  if (query_key > line_num) {
+    return NULL;
+  }else {
+    tmp_node = tree;
+    while(tmp_node->right != NULL) {
+      if(query_key < tmp_node->key) {
+        tmp_node = tmp_node->left;
+      }else {
+        tmp_node = tmp_node->right;
+      }
+      if(tmp_node->key == query_key) {
+        previous = (object_t *) tmp_node->left;
+        tmp_node->left = (tree_node_t *)new_object;
+        return previous;
+      }
+    }
+  }
+
+}
+
+void renumber_delete(tree_node_t *tree, key_t new_key) {
+  tree_node_t *tmp_node = tree;
+  if(tmp_node->right == NULL && tmp_node->key > new_key) {
+    tmp_node->key -= 1;
+    return;
+  }
+    if(tmp_node->key > new_key) {
+      tmp_node->key -= 1;
+      renumber_delete(tmp_node->left, new_key);
+      renumber_delete(tmp_node->right, new_key);
+    }
+
+}
 
 object_t *delete(tree_node_t *tree, key_t delete_key)
 {  tree_node_t *tmp_node, *upper_node, *other_node;
@@ -241,6 +313,8 @@ object_t *delete(tree_node_t *tree, key_t delete_key)
          return_node( other_node );
 
       }
+      renumber_delete(tree, delete_key);
+
       /*start rebalance*/  
       finished = 0; path_st_p -= 1;
       while( path_st_p > 0 && !finished )
@@ -325,7 +399,7 @@ int main()
     // add code to read a file
     int i=0;
     char* programs[1024];
-    char line[70];
+    char line[256];
 
     FILE *file;
     file = fopen("/Users/xuegong/Desktop/text4test.txt", "r");
@@ -343,19 +417,36 @@ int main()
    while( (nextop = getchar())!= 'q' )
    { if( nextop == 'i' )
      { int inskey, success;
-       object_t *insobj;
+       object_t insobj[256];
        //insobj = (int *) malloc(sizeof(int));
        scanf(" %d", &inskey);
-       scanf("%s", insobj);
+       if (fgets(insobj, sizeof insobj, stdin ) != NULL) {
+        success = insert( searchtree, inskey, insobj );
+       }
+       //scanf("%s", insobj);
        //*insobj = 10*inskey+2;
-       success = insert( searchtree, inskey, insobj );
+       //success = insert( searchtree, inskey, insobj );
        if ( success == 0 )
-         printf("  insert successful, key = %d, object value = %d, \
+         printf("  insert successful, key = %d, object value = %s, \
                   height is %d\n",
-            inskey, *insobj, searchtree->height );
+            inskey, insobj, searchtree->height );
        else
            printf("  insert failed, success = %d\n", success);
-     }  
+     }
+     if(nextop == 'a') {
+       int success;
+       object_t insobj[256];
+       if (fgets(insobj, sizeof insobj, stdin ) != NULL) {
+        success = append_line( searchtree, insobj );
+       }
+
+       if ( success == 0 )
+         printf("  append successful, object value = %s, \
+                  height is %d\n",
+            insobj, searchtree->height );
+       else
+           printf("  append failed, success = %d\n", success);
+     }
      if( nextop == 'f' )
      { int findkey;
       char *findobj;
@@ -385,6 +476,28 @@ int main()
     printf("key in root is %d, height of tree is %d\n", 
      searchtree->key, searchtree->height );
         printf("  Finished Checking tree\n"); 
+     }
+     if(nextop == 'l') {
+      int length = length_text(searchtree);
+      printf("Text file length is: %d\n", length);
+     }
+     if(nextop == 's') {
+       int inskey;
+       object_t *success;
+       object_t insobj[256];
+       //insobj = (int *) malloc(sizeof(int));
+       scanf(" %d", &inskey);
+       if (fgets(insobj, sizeof insobj, stdin ) != NULL) {
+        success = set_line( searchtree, inskey, insobj );
+       }
+       //scanf("%s", insobj);
+       //*insobj = 10*inskey+2;
+       if ( success != NULL )
+         printf("  insert successful, key = %d, new value = %s, \
+                  height is %d\n",
+            inskey, insobj, searchtree->height );
+       else
+           printf("  insert failed, success = %d\n", success);
      }
    }
    return(0);
