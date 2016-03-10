@@ -1,0 +1,76 @@
+ALAIN DEFRANCE'S BLOG 
+https://alaindefrance.wordpress.com/2014/09/28/linear-sorting-algorithm-bitmap-sort/
+
+Most of the time, sorting algorithms cannot have a linear execution time because of the nature of the data. 
+For generics algorithms the best complexity is O(nlog(n)) which is not bad compared to the very trivial ones that are O(n2).
+
+Depending on the size of your data and their nature, it may be appropriate to use more efficient algorithms and most of the time 
+the implementation itself is tightly dependent of your needs. However it’s often the same approach that you adapt for your needs.
+
+The easiest data to sort are numbers because their nature allows us to use intermediate data structures like arrays and/or simple 
+binary representation to process the sorting in O(n).
+
+Let’s say you have 1 billion integers with no dupliates and you need to sort them.
+Using a generic algorithm is not acceptable because of the amount of comparison and the memory footprint would be 4 billions bytes 
+(about 3.7Gb).
+
+If we step back and assume that integers are between 0 and 1,000,000,000, since we know all possible numbers and the final sorted 
+output will be an iteration from 0 to 1,000,000,000 with some missing. We only need to know whether a number is present or not.
+
+The smallest data structure to store existence is a bit (0 or 1) that flags a given number as existing or not.
+We need a very long string of bit to store 1,000,000,000 state. It’s doable by using chunks of 32 (integer) and we 
+need 1,000,000,000 / 32 = 31250000 integers thus 119.2Mb that is way better.
+
+Our data structure will be a simple int[31250000]. All we need is for a given read integer:
+
+Find the bucket: number / 32
+Find the bit: number % 32
+Set the bit to 1
+
+
+Fairly easy implementation:
+
+int[] bitmap = new int[31250000];
+Scanner in = new Scanner(new FileReader("data.txt"));
+while(in.hasNextLine()) {
+    int i = Integer.parseInt(in.nextLine());
+    bitmap[i / 32] |= 1 << i % 32;
+}
+
+
+All we need to do is scanning the bitmap and print the number if the bit is 1:
+
+for(int bucket = 0; bucket < bitmap.length; ++bucket) {
+    int bit = 1;
+    while(bitmap[bucket] != 0) {
+        if ((bitmap[bucket] & 1) == 1) {
+            System.out.println((32 * bucket) + bit - 1);
+        }
+    bitmap[bucket] >>>= 1;
+    ++bit;
+    }
+}
+
+Let’s say we want to print only the missing number, we can keep almost everything as it:
+
+for(int bucket = 0; bucket < bitmap.length; ++bucket) {
+    int bit = 1;
+    while(bitmap[bucket] != 0) {
+        if ((bitmap[bucket] & 1) == 0) { // only look for not existing this time.
+            System.out.println((32 * bucket) + bit - 1);
+        }
+    bitmap[bucket] >>>= 1;
+    ++bit;
+    }
+}
+Now we still consider 1 billion integers but from a range [1,000,000 to 1,999,999], we have 1,000,000 possible number. 
+The bitmap would be 1,000,000 / 32 = 31250 (122Kb). That means yes we can sort 4 billions integers with about 100 kb memory
+in a linear time. Notice that any duplicates will be removed that might be a problem. In this case count sort might help.
+
+Of course this cannot resolve everything and it’s effective because the numbers are well known and the missing ones are few 
+comparing to the existing ones.
+If you don’t know the range or if most of them are missing in your input, the bitmap will be mostly empty and it’s memory wasting
+and you need another algorithm like radix sort that have a complexity of O(kn), k being the digit numbers).
+
+If the bitmap is too huge to fit the memory, we can keep everything as it except that we’ll apply a merge sort with a bitmap sort. 
+We would create intermediate files (output of the bitmap sort) and then merge them to the final output.
