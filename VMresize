@@ -1,0 +1,1 @@
+VBoxManage modifyhd Ubuntu.vdi --resize 15000
