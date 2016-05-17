@@ -625,7 +625,7 @@ key_t find_max(tree_node_t *tree) {
 
 int check_height(tree_node_t *tree) {
    int count = 0;
-   if (tree->left == NULL) {
+   if (tree == NULL || tree->left == NULL) {
       return 0;
    }
 
@@ -665,30 +665,30 @@ void join(tree_node_t *tree1, tree_node_t *tree2) {
       t->key = tree2->key;
       t->left = tree2->left;
       t->right = tree2->right;
-      t->color = tree2->color;
+      t->color = black;
 
       tree2->key = tree1->key;
       tree2->left = tree1->left;
       tree2->right = tree1->right;
-      tree2->color = tree1->color;
+      tree2->color = black;
 
       //tree1 = t;
       tree1->key = t->key;
       tree1->left = t->left;
       tree1->right = t->right;
-      tree1->color = t->color;
+      tree1->color = black;
    }
    // each value in tree1 is less then each vaule in tree2
    int h1 = check_height(tree1);
    int h2 = check_height(tree2);
-   tree_node_t *tree = create_tree();
    if (h1 == h2) {
+      tree_node_t *tree = create_tree();
       int *insobj1, *insobj2;
       insobj1 = (int *) malloc(sizeof(int));
-      *insobj1 = 0;
+      *insobj1 = 2;
       insert(tree,0, insobj1);
       insobj2 = (int *) malloc(sizeof(int));
-      *insobj2 = 1;
+      *insobj2 = 12;
       insert(tree,1, insobj2);
       tree->key = find_min(tree2);
       tree->left->key = tree1->key;
@@ -706,6 +706,7 @@ void join(tree_node_t *tree1, tree_node_t *tree2) {
       tree1->left->color = tree->left->color;
       tree1->right = tree->right;
       tree1->right->color = tree->right->color;
+      tree1->color = black;
 
       tree_node_t *empty_tree = create_tree();
       tree2->key = empty_tree->key;
@@ -713,17 +714,21 @@ void join(tree_node_t *tree1, tree_node_t *tree2) {
       tree2->right = empty_tree->right;
       return;
    }else if (h1 > h2) {
+      if (tree2->right == NULL) {
+         insert(tree1,tree2->key,(object_t *)tree2->left);
+         return;
+      }
       tree_node_t *tmp_node = tree1;
-      tree_node_t *p = tmp_node;
-      tree_node_t *g = p;
+      tree_node_t *p = tree1;
+      tree_node_t *g = tree1;
       // tmp_node = tmp_node->right;
-      while (check_height(tmp_node) != h2) {
+      while (check_height(tmp_node) > h2) {
          g = p;
          p = tmp_node;
          tmp_node = tmp_node->right;
       }
 
-      while (tmp_node->color != black) {
+      if (tmp_node->color != black) {
          g = p;
          p = tmp_node;
          tmp_node = tmp_node->right;
@@ -754,7 +759,7 @@ void join(tree_node_t *tree1, tree_node_t *tree2) {
       p->right->key = tmp_tree->key;
       p->right->left = tmp_tree->left;
       p->right->right = tmp_tree->right;
-      p->right->color = tmp_tree->color;
+      p->right->color = red;
       //tree = tree1;
       tree_node_t *empty_tree = create_tree();
       tree2->key = empty_tree->key;
@@ -763,16 +768,20 @@ void join(tree_node_t *tree1, tree_node_t *tree2) {
       //fix color 
       if (p->color == red) {
          printf("after rebalance\n");
+         if (g->left == NULL) {
+            p->color = black;
+            return;
+         }
          if (g->left->color == black) {
             left_rotation(g);
             g->color = black;
             g->left->color = red;
             g->right->color = red;
          }else {
-            right_rotation(g);
+            //right_rotation(g);
             g->color = red;
             g->left->color = black;
-            g->right->color = red;
+            g->right->color = black;
             if (g == tree1)
                g->color = black;
          }
@@ -781,16 +790,29 @@ void join(tree_node_t *tree1, tree_node_t *tree2) {
 
    }else {
       // h1 < h2
+      if (tree1->right == NULL) {
+         insert(tree2,tree1->key,(object_t *)tree1->left);
+         tree1->key = tree2->key;
+         tree1->left = tree2->left;
+         tree1->right = tree2->right;
+         tree1->color = black;
+
+         tree_node_t *empty_tree = create_tree();
+         tree2->key = empty_tree->key;
+         tree2->left = empty_tree->left;
+         tree2->right = empty_tree->right;
+         return;
+      }
       tree_node_t *tmp_node = tree2;
-      tree_node_t *p = tmp_node;
-      tree_node_t *g = p;
-      while (check_height(tmp_node) != h1) {
+      tree_node_t *p = tree2;
+      tree_node_t *g = tree2;
+      while (check_height(tmp_node) > h1) {
          g = p;
          p = tmp_node;
          tmp_node = tmp_node->left;
       }
 
-      while (tmp_node->color != black) {
+      if (tmp_node->color != black) {
          g = p;
          p = tmp_node;
          tmp_node = tmp_node->left;
@@ -821,11 +843,12 @@ void join(tree_node_t *tree1, tree_node_t *tree2) {
       p->left->key = tmp_tree->key;
       p->left->left = tmp_tree->left;
       p->left->right = tmp_tree->right;
-      p->left->color = tmp_tree->color;
+      p->left->color = red;
       //tree = tree2;
       tree1->key = tree2->key;
       tree1->left = tree2->left;
       tree1->right = tree2->right;
+      tree1->color = black;
 
       tree_node_t *empty_tree = create_tree();
       tree2->key = empty_tree->key;
@@ -834,13 +857,17 @@ void join(tree_node_t *tree1, tree_node_t *tree2) {
       //fix color 
       if (p->color == red) {
          printf("after rebalance\n");
+         if (g->left == NULL) {
+            p->color = black;
+            return;
+         }
          if (g->right->color == black) {
             right_rotation(g);
             g->color = black;
             g->left->color = red;
             g->right->color = red;
          }else {
-            left_rotation(g);
+            //left_rotation(g);
             g->color = red;
             g->left->color = black;
             g->right->color = black;
@@ -924,124 +951,41 @@ int main()
 {  tree_node_t *searchtree;
    char nextop;
 
-   // tree_node_t *new_tree= create_tree();
-   // searchtree = create_tree();
-   // for (int i = 0; i < 12; i++) {
-   //    int *insobj = (int *) malloc(sizeof(int));
-   //    *insobj = 10*i+2;
-   //    insert(searchtree,i, insobj);
-   // }
-
    tree_node_t *tree1;
    //tree_node_t *tree2;
    tree1 = create_tree();
    //tree2 = create_tree();
 
-   for (int i = 0; i < 19; i++) {
+   for (int i = 0; i < 19999; i++) {
       int *insobj = (int *) malloc(sizeof(int));
       *insobj = 10*i+2;
       insert(tree1,i,insobj);
    }
 
-   printf("before split\n");
-   printf("tree1: ");
-   check_tree(tree1,0,-100000,100000);
-   printf("\n");
-   // printf("tree2: ");
-   // check_tree(tree2,0,-100000,100000);
-   // printf("\nafter join.........\n");
 
-   tree_node_t *tree2 = split(tree1,8);
+   for (int i = 0; i < 20000; i++) {
+      printf("\nbefore split\n");
+      printf("tree1: ");
+      check_tree(tree1,0,-100000,100000);
+      printf("\n");
 
-   printf("\nafter split\n");
-   printf("tree2: ");
-   check_tree(tree2,0,-100000,100000);
-   printf("\n");
-   printf("tree1: ");
-   check_tree(tree1,0,-100000,100000);
-   printf("\n......\n");
-   // for (int i = 0; i < 30; i++) {
-   //    int *insobj = (int *) malloc(sizeof(int));
-   //    *insobj = 10*i+2;
-   //    insert(tree1,i, insobj);
-   // }
-   // for (int i = 31; i < 42; i++) {
-   //    int *insobj = (int *) malloc(sizeof(int));
-   //    *insobj = 10*i+2;
-   //    insert(tree2,i, insobj);
-   // }
-   // printf("before check\n");
-   // printf("tree1: ");
-   // check_tree(tree1,0,-100000,100000);
-   // printf("\n");
-   // printf("tree2: ");
-   // check_tree(tree2,0,-100000,100000);
-   // printf("\nafter join.........\n");
+      tree_node_t *tree2 = split(tree1,i);
 
-   // join(tree1,tree2);
+      printf("\nafter split\n");
+      printf("tree2: ");
+      check_tree(tree2,0,-100000,100000);
+      printf("\n");
+      printf("tree1: ");
+      check_tree(tree1,0,-100000,100000);
+      printf("\n......\n");
 
-   // printf("tree1: ");
-   // check_tree(tree1,0,-100000,100000);
-   // printf("\n");
-   // printf("tree2: ");
-   // check_tree(tree2,0,-100000,100000);
-   // printf("\n");
+      join(tree1,tree2);
+      printf("\nafter join\n");
+      printf("tree1: ");
+      check_tree(tree1,0,-100000,100000);
+      printf("\ntree2: ");
+      check_tree(tree2,0,-100000,100000);
+      printf("\n");
+   }
 
-   // check_tree(searchtree,0,-100000,100000);
-   // printf("Made Tree: Red-Black Tree with Top-Down Rebalancing\n");
-   // while( (nextop = getchar())!= 'q' )
-   // { if( nextop == 'i' )
-   //   { int inskey,  *insobj, success;
-   //     insobj = (int *) malloc(sizeof(int));
-   //     scanf(" %d", &inskey);
-   //     *insobj = 10*inskey+2;
-   //     success = insert( searchtree, inskey, insobj );
-   //     if ( success == 0 )
-   //       printf("  insert successful, key = %d, object value = %d,\n",
-   //      	  inskey, *insobj );
-   //     else
-   //         printf("  insert failed, success = %d\n", success);
-   //   }  
-   //   if( nextop == 'f' )
-   //   { int findkey, *findobj;
-   //     scanf(" %d", &findkey);
-   //     findobj = find( searchtree, findkey);
-   //     if( findobj == NULL )
-   //       printf("  find failed, for key %d\n", findkey);
-   //     else
-   //       printf("  find successful, found object %d\n", *findobj);
-   //   }
-   //   if( nextop == 'd' )
-   //   { int delkey, *delobj;
-   //     scanf(" %d", &delkey);
-   //     delobj = delete( searchtree, delkey);
-   //     if( delobj == NULL )
-   //       printf("  delete failed for key %d\n", delkey);
-   //     else
-   //       printf("  delete successful, deleted object %d\n", 
-   //           *delobj);
-   //   }
-   //   if (nextop == 's') {
-   //       int splitting_key;
-   //       scanf(" %d", &splitting_key);
-   //       new_tree = split(searchtree,splitting_key);
-   //       printf("key in root is %d,\n", searchtree->key);
-   //       check_tree(searchtree,0,-100000,100000);
-   //       printf("\n............\n");
-   //       if (new_tree != NULL){
-   //          printf("\nkey in new_tree root is %d,\n", new_tree->key);
-   //          check_tree(new_tree,0,-100000,100000);
-   //       }
-   //       printf("\n  Finished Splitting tree\n"); 
-   //   }
-   //   if( nextop == '?' )
-   //   {  printf("  Checking tree\n"); 
-   //      check_tree(searchtree,0,-100000,100000);
-   //      printf("\n");
-   //      if( searchtree->left != NULL )
-	  // printf("key in root is %d,\n", searchtree->key);
-   //      printf("  Finished Checking tree\n"); 
-   //   }
-   // }
-   // return(0);
 }
